@@ -1,8 +1,23 @@
-from fastapi import FastAPI
-from pydantic import BaseModel, Field, field_validator
+from contextlib import asynccontextmanager
+
+from fastapi import Depends, FastAPI
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from .database import Base, engine, get_db
+from .models import Subject as SubjectModel
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Создает отсутствующие таблицы, не удаляя существующие данные.
+    # Изменение уже созданных таблиц позже потребует миграций.
+    Base.metadata.create_all(bind=engine)
+    yield
+
 
 # FastAPI принимает HTTP-запросы и вызывает подходящие функции ниже.
-app = FastAPI(title="StudyFlow — первый сервер")
+app = FastAPI(title="StudyFlow — первый сервер", lifespan=lifespan)
 
 
 class SubjectCreate(BaseModel):
@@ -23,30 +38,31 @@ class SubjectCreate(BaseModel):
 class Subject(BaseModel):
     # Дисциплина в ответе сервера: название и присвоенный сервером ID.
 
+    # Позволяет формировать ответ из объекта SQLAlchemy.
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
 
 
-# Пока это наша временная «база»: при перезапуске список очищается.
-subjects: list[Subject] = []
-
-
 @app.get("/health")
 async def health():
-    # Проверка: работает ли сервер. 
+    # Проверка: работает ли сервер.
     return {"status": "ok"}
 
 
 @app.get("/subjects", response_model=list[Subject])
-async def get_subjects():
+def get_subjects(db: Session = Depends(get_db)):
     # Вернуть все добавленные дисциплины.
-    return subjects
+    # Обычный def: синхронная работа с базой выполняется в потоке FastAPI.
+    return db.scalars(select(SubjectModel).order_by(SubjectModel.id)).all()
 
 
 @app.post("/subjects", response_model=Subject, status_code=201)
-async def create_subject(data: SubjectCreate):
+def create_subject(data: SubjectCreate, db: Session = Depends(get_db)):
     # Принять название, создать дисциплину и вернуть ее клиенту.
-    # Такое назначение ID подходит здесь, пока нет удаления и базы данных.
-    subject = Subject(id=len(subjects) + 1, name=data.name)
-    subjects.append(subject)
+    subject = SubjectModel(name=data.name)
+    db.add(subject)       # Подготовить новую строку.
+    db.commit()           # Сохранить изменения в файле базы.
+    db.refresh(subject)   # Получить назначенный базой ID.
     return subject
