@@ -218,3 +218,29 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# StudyFlow: первый релиз — только исходники Python и зависимости.
+# Уже отслеживаемые README.md и LICENSE остаются в репозитории.
+/*
+!/.gitignore
+!/backend/
+/backend/*
+!/backend/app/
+!/backend/tests/
+!/backend/requirements.txt
+/backend/app/**
+!/backend/app/**/
+!/backend/app/**/*.py
+/backend/tests/**
+!/backend/tests/**/
+!/backend/tests/**/*.py
+
+# Исключения для Python-файлов выше не должны включать окружения и кэш.
+**/.venv/
+**/venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.env
+**/.env.*
+**/.DS_Store
+**/tempCodeRunnerFile.py
