@@ -1,23 +1,15 @@
-from contextlib import asynccontextmanager
-
 from fastapi import Depends, FastAPI
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .database import Base, engine, get_db
+from .database import get_db
+from .auth import current_user
+from .models import User
 from .models import Subject as SubjectModel
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Создает отсутствующие таблицы, не удаляя существующие данные.
-    # Изменение уже созданных таблиц позже потребует миграций.
-    Base.metadata.create_all(bind=engine)
-    yield
-
-
-# FastAPI принимает HTTP-запросы и вызывает подходящие функции ниже.
-app = FastAPI(title="StudyFlow — первый сервер", lifespan=lifespan)
+# Структура базы обновляется отдельно: python -m alembic upgrade head.
+app = FastAPI(title="StudyFlow")
 
 
 class SubjectCreate(BaseModel):
@@ -52,17 +44,23 @@ async def health():
 
 
 @app.get("/subjects", response_model=list[Subject])
-def get_subjects(db: Session = Depends(get_db)):
+def get_subjects(db: Session = Depends(get_db), user: User = Depends(current_user)):
     # Вернуть все добавленные дисциплины.
     # Обычный def: синхронная работа с базой выполняется в потоке FastAPI.
-    return db.scalars(select(SubjectModel).order_by(SubjectModel.id)).all()
+    return db.scalars(select(SubjectModel).where(SubjectModel.user_id == user.id).order_by(SubjectModel.id)).all()
 
 
 @app.post("/subjects", response_model=Subject, status_code=201)
-def create_subject(data: SubjectCreate, db: Session = Depends(get_db)):
+def create_subject(data: SubjectCreate, db: Session = Depends(get_db), user: User = Depends(current_user)):
     # Принять название, создать дисциплину и вернуть ее клиенту.
-    subject = SubjectModel(name=data.name)
+    subject = SubjectModel(name=data.name, user_id=user.id)
     db.add(subject)       # Подготовить новую строку.
     db.commit()           # Сохранить изменения в файле базы.
     db.refresh(subject)   # Получить назначенный базой ID.
     return subject
+
+
+@app.get("/me")
+def me(user: User = Depends(current_user)):
+    # Токен бота никогда не возвращается клиенту.
+    return {"id": user.id, "telegram_id": user.telegram_id, "name": user.name}
