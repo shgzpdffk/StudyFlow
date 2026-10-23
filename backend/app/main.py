@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .database import get_db
+from .sessions import router as sessions_router
 from .deadlines import router as deadlines_router
 from .auth import current_user
 from .models import User
@@ -12,6 +13,7 @@ from .models import Subject as SubjectModel
 # Структура базы обновляется отдельно: python -m alembic upgrade head.
 app = FastAPI(title="StudyFlow")
 app.include_router(deadlines_router)
+app.include_router(sessions_router)
 
 
 class SubjectCreate(BaseModel):
