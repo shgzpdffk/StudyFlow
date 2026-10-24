@@ -253,3 +253,13 @@ __marimo__/
 /backend/migrations/__pycache__/
 /backend/migrations/versions/__pycache__/
 !/backend/README.md
+
+# Фронтенд: исходники и lock-файл включаем, зависимости и секреты — нет.
+!/frontend/
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.env
+/frontend/.env.*
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/*.tsbuildinfo
