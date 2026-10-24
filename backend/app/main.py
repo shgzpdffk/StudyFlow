@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .database import get_db
+from .stats import router as stats_router
 from .sessions import router as sessions_router
 from .deadlines import router as deadlines_router
 from .auth import current_user
@@ -14,6 +15,7 @@ from .models import Subject as SubjectModel
 app = FastAPI(title="StudyFlow")
 app.include_router(deadlines_router)
 app.include_router(sessions_router)
+app.include_router(stats_router)
 
 
 class SubjectCreate(BaseModel):
