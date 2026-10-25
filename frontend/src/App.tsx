@@ -4,6 +4,7 @@ import { ApiError, demoSource, telegramSource, type Workspace } from './api';
 import { initializeTelegram } from './telegram';
 import SubjectDialog from './SubjectDialog';
 import CalendarView from './CalendarView';
+import FocusView from './FocusView';
 
 const colors = ['mint', 'lilac', 'peach', 'blue', 'yellow', 'rose'];
 const initials = (name: string) => Array.from(name.trim())[0]?.toLocaleUpperCase('ru') || 'С';
@@ -11,7 +12,7 @@ const initials = (name: string) => Array.from(name.trim())[0]?.toLocaleUpperCase
 export default function App() {
   const [initData] = useState(initializeTelegram);
   const [mode, setMode] = useState<'welcome' | 'demo' | 'telegram'>(initData ? 'telegram' : 'welcome');
-  const [page, setPage] = useState<'subjects' | 'calendar'>('subjects');
+  const [page, setPage] = useState<'subjects' | 'calendar' | 'focus'>('subjects');
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -59,17 +60,18 @@ export default function App() {
       <nav aria-label="Основная навигация">
         <button className={`nav-item ${page === 'subjects' ? 'active' : ''}`} aria-current={page === 'subjects' ? 'page' : undefined} onClick={() => setPage('subjects')}><BookOpen size={20} /><span>Дисциплины</span><ChevronRight size={16} /></button>
         <button className={`nav-item ${page === 'calendar' ? 'active' : ''}`} aria-current={page === 'calendar' ? 'page' : undefined} onClick={() => setPage('calendar')}><CalendarDays size={20} /><span>Календарь</span><ChevronRight size={16} /></button>
-        <div className="nav-item upcoming" aria-disabled="true"><Clock3 size={20} /><span>Фокус</span><small>Скоро</small></div>
+        <button className={`nav-item ${page === 'focus' ? 'active' : ''}`} aria-current={page === 'focus' ? 'page' : undefined} onClick={() => setPage('focus')}><Clock3 size={20} /><span>Фокус</span><ChevronRight size={16} /></button>
         <div className="nav-item upcoming" aria-disabled="true"><ChartNoAxesColumnIncreasing size={20} /><span>Статистика</span><small>Скоро</small></div>
       </nav>
       <div className="sidebar-bottom"><div className="small-note"><Sparkles size={20} /><p>Большие результаты<br /><strong>начинаются с малого.</strong></p></div><div className="profile"><div className="avatar">{initials(workspace?.user.name || 'Студент')}</div><div><strong>{workspace?.user.name || 'Твое пространство'}</strong><small>{mode === 'demo' ? 'Демонстрация' : workspace ? 'Аккаунт Telegram' : 'Для твоей учебы'}</small></div></div></div>
     </aside>
     <div className="workspace">
-      <header className="topbar"><div className="breadcrumb">Моя учеба <ChevronRight size={14} /><strong>{page === 'calendar' ? 'Календарь' : 'Дисциплины'}</strong></div><time>{today}</time><span className="mobile-brand"><Layers3 size={20} /> StudyFlow</span></header>
+      <header className="topbar"><div className="breadcrumb">Моя учеба <ChevronRight size={14} /><strong>{page === 'calendar' ? 'Календарь' : page === 'focus' ? 'Фокус' : 'Дисциплины'}</strong></div><time>{today}</time><span className="mobile-brand"><Layers3 size={20} /> StudyFlow</span></header>
       <main id="main">
         <nav className="mobile-navigation" aria-label="Разделы приложения">
           <button aria-current={page === 'subjects' ? 'page' : undefined} onClick={() => setPage('subjects')}><BookOpen size={17} />Дисциплины</button>
           <button aria-current={page === 'calendar' ? 'page' : undefined} onClick={() => setPage('calendar')}><CalendarDays size={17} />Календарь</button>
+          <button aria-current={page === 'focus' ? 'page' : undefined} onClick={() => setPage('focus')}><Clock3 size={17} />Фокус</button>
         </nav>
         {mode === 'demo' && <div className="demo-banner"><span><Sparkles size={16} /> Демо-режим. Изменения не сохраняются на сервере.</span><button onClick={() => { setMode(initData ? 'telegram' : 'welcome'); setSearch(''); setDialog(false); setPage('subjects'); }}>Выйти из демо <X size={15} /></button></div>}
         {(page === 'subjects' || !workspace) && <><section className="page-heading"><div><p className="eyebrow">МЕНЬШЕ ХАОСА. БОЛЬШЕ ЯСНОСТИ.</p><h1>Твоя учеба —<br className="mobile-break" /> по полочкам.</h1><p className="subtitle">Все дисциплины в одном месте. Начни с первого предмета.</p></div><span className="edition">STUDYFLOW / 01</span></section>
@@ -85,6 +87,9 @@ export default function App() {
         </section>}
         {page === 'calendar' && workspace && <CalendarView source={source} subjects={subjects} demo={mode === 'demo'}
           onSubjects={() => setPage('subjects')} onNotice={setNotice}
+          onExpired={message => { setWorkspace(null); setExpired(true); setError(message); setPage('subjects'); }} />}
+        {page === 'focus' && workspace && <FocusView source={source} subjects={subjects}
+          onSubjects={() => setPage('subjects')}
           onExpired={message => { setWorkspace(null); setExpired(true); setError(message); setPage('subjects'); }} />}
         <footer className="page-footer"><span><Layers3 size={14}/> Учись в своем ритме.</span><span>Сначала один маленький шаг.</span></footer>
       </main>
